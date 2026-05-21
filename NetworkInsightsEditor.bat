@@ -1,0 +1,1 @@
+"D:\Epic Games\UE_5.4\Engine\Binaries\Win64\UnrealEditor.exe" %cd%\ArenaBattle.uproject -NetTrace=1 -Trace=Net

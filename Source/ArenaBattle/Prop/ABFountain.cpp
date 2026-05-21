@@ -32,13 +32,15 @@ AABFountain::AABFountain()
 	}
 
 	bReplicates = true;
+	NetUpdateFrequency = 1.f;
+    NetCullDistanceSquared = 2000.f * 2000.f;
 }
 
 // Called when the game starts or when spawned
 void AABFountain::BeginPlay()
 {
 	Super::BeginPlay();
-    if (HasAuthority())
+    /*if (HasAuthority())
     {
 		ServerRotationYaw = 0.f;
         FTimerHandle TimerHandle;
@@ -46,7 +48,7 @@ void AABFountain::BeginPlay()
 			{
 				ServerRotationYaw += 1.f;
 			}), 1.0f, true, 0.f);
-    }
+    }*/
 }
 
 // Called every frame
@@ -56,9 +58,24 @@ void AABFountain::Tick(float DeltaTime)
 
     if (HasAuthority())
     {
-        //AddActorLocalRotation(FRotator(0.0f, RotationRate * DeltaTime, 0.0f));
-        //ServerRotationYaw = RootComponent->GetComponentRotation().Yaw;
+        AddActorLocalRotation(FRotator(0.0f, RotationRate * DeltaTime, 0.0f));
+        ServerRotationYaw = RootComponent->GetComponentRotation().Yaw;
     }
+	else
+	{
+        ClientTimeSinceUpdate += DeltaTime;
+		if (ClientTimeBetweenLastUpdates < KINDA_SMALL_NUMBER)
+		{
+			return;
+		}
+
+        const float EstimateRotationYaw = ServerRotationYaw + RotationRate * ClientTimeBetweenLastUpdates;
+        const float LerpRatio = ClientTimeSinceUpdate / ClientTimeBetweenLastUpdates;
+
+        FRotator ClientRotator = RootComponent->GetComponentRotation();
+        ClientRotator.Yaw = FMath::Lerp(ServerRotationYaw, EstimateRotationYaw, LerpRatio);
+        RootComponent->SetWorldRotation(ClientRotator);
+	}
 }
 
 void AABFountain::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -74,11 +91,24 @@ void AABFountain::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Connecti
 	AB_LOG(LogABNetwork, Log, TEXT("End"));
 }
 
+bool AABFountain::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
+{
+    bool NetRelevantResult = Super::IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
+	if (!NetRelevantResult)
+	{
+        AB_LOG(LogABNetwork, Log, TEXT("Not Net Relevant[%s] %s"), *RealViewer->GetName(), *SrcLocation.ToCompactString());
+	}
+    return NetRelevantResult;
+}
+
 void AABFountain::OnRep_ServerRotationYaw()
 {
     AB_LOG(LogABNetwork, Log, TEXT("Yaw : %f"), ServerRotationYaw);
-	//FRotator NewRotation = RootComponent->GetComponentRotation();
-	//NewRotation.Yaw = ServerRotationYaw;
-	//RootComponent->SetWorldRotation(NewRotation);
+	FRotator NewRotation = RootComponent->GetComponentRotation();
+	NewRotation.Yaw = ServerRotationYaw;
+	RootComponent->SetWorldRotation(NewRotation);
+
+    ClientTimeBetweenLastUpdates = ClientTimeSinceUpdate;
+    ClientTimeSinceUpdate = 0.0f;
 }
 
