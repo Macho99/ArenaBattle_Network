@@ -132,7 +132,7 @@ void AABCharacterPlayer::OnRep_Owner()
 
 void AABCharacterPlayer::PostNetInit()
 {
-	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
+	AB_LOG(LogABNetwork, Log, TEXT("%s %s"), TEXT("Begin"), *GetName());
 	Super::PostNetInit();
 	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("End"));
 }
