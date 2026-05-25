@@ -6,6 +6,7 @@
 #include "Net/UnrealNetwork.h"
 #include "ArenaBattle.h"
 #include "Components/PointLightComponent.h"
+#include "EngineUtils.h"
 
 // Sets default values
 AABFountain::AABFountain()
@@ -44,23 +45,23 @@ void AABFountain::BeginPlay()
 	Super::BeginPlay();
     if (HasAuthority())
     {
-		ServerRotationYaw = 0.f;
-		{
-			FTimerHandle TimerHandle;
-			GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([this]()
-				{
-					ServerLightColor = FLinearColor::MakeRandomColor();
-					OnRep_ServerLightColor();
-				}), 1.0f, true, 0.f);
-		}
+		//ServerRotationYaw = 0.f;
+		//{
+		//	FTimerHandle TimerHandle;
+		//	GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([this]()
+		//		{
 
-		{
-			FTimerHandle TimerHandle;
-			GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([this]()
-				{
-					//FlushNetDormancy();
-				}), 10.0f, false, -1.f);
-		}
+		//		}), 1.0f, true, 0.f);
+		//}
+
+		//{
+		//	FTimerHandle TimerHandle;
+		//	GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([this]()
+		//		{
+  //                  const FLinearColor NewColor = FLinearColor::MakeRandomColor();
+  //                  MulticastRPCChangeLightColor(NewColor);
+		//		}), 5.0f, false, -1.f);
+		//}
     }
 }
 
@@ -98,28 +99,28 @@ void AABFountain::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
     DOREPLIFETIME(AABFountain, ServerLightColor);
 }
 
-void AABFountain::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Connection)
-{
-	AB_LOG(LogABNetwork, Log, TEXT("Begin"));
-    Super::OnActorChannelOpen(InBunch, Connection);
-	AB_LOG(LogABNetwork, Log, TEXT("End"));
-}
-
-bool AABFountain::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
-{
-    bool NetRelevantResult = Super::IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
-	if (!NetRelevantResult)
-	{
-        AB_LOG(LogABNetwork, Log, TEXT("Not Net Relevant[%s] %s"), *RealViewer->GetName(), *SrcLocation.ToCompactString());
-	}
-    return NetRelevantResult;
-}
-
-void AABFountain::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
-{
-    AB_LOG(LogABNetwork, Log, TEXT("PreReplication"));
-    Super::PreReplication(ChangedPropertyTracker);
-}
+//void AABFountain::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Connection)
+//{
+//	AB_LOG(LogABNetwork, Log, TEXT("Begin"));
+//    Super::OnActorChannelOpen(InBunch, Connection);
+//	AB_LOG(LogABNetwork, Log, TEXT("End"));
+//}
+//
+//bool AABFountain::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
+//{
+//    bool NetRelevantResult = Super::IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
+//	if (!NetRelevantResult)
+//	{
+//        AB_LOG(LogABNetwork, Log, TEXT("Not Net Relevant[%s] %s"), *RealViewer->GetName(), *SrcLocation.ToCompactString());
+//	}
+//    return NetRelevantResult;
+//}
+//
+//void AABFountain::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
+//{
+//    AB_LOG(LogABNetwork, Log, TEXT("PreReplication"));
+//    Super::PreReplication(ChangedPropertyTracker);
+//}
 
 void AABFountain::OnRep_ServerRotationYaw()
 {
@@ -146,3 +147,33 @@ void AABFountain::OnRep_ServerLightColor()
 	}
 }
 
+void AABFountain::MulticastRPCChangeLightColor_Implementation(const FLinearColor& NewColor)
+{
+	AB_LOG(LogABNetwork, Log, TEXT("LightColor : %s"), *NewColor.ToString());
+	UPointLightComponent* PointLight = FindComponentByClass<UPointLightComponent>();
+	if (PointLight)
+	{
+		PointLight->SetLightColor(NewColor);
+	}
+}
+
+void AABFountain::ServerRPCChangeLightColor_Implementation()
+{
+    const FLinearColor NewColor = FLinearColor::MakeRandomColor();
+    MulticastRPCChangeLightColor(NewColor);
+}
+
+bool AABFountain::ServerRPCChangeLightColor_Validate()
+{
+	return true;
+}
+
+void AABFountain::ClientRPCChangeLightColor_Implementation(const FLinearColor& NewColor)
+{
+	AB_LOG(LogABNetwork, Log, TEXT("LightColor : %s"), *NewColor.ToString());
+	UPointLightComponent* PointLight = FindComponentByClass<UPointLightComponent>();
+	if (PointLight)
+	{
+		PointLight->SetLightColor(NewColor);
+	}
+}
