@@ -24,13 +24,10 @@ protected:
 
 protected:
 	void SetDead() override;
-	void NPCMeshLoadCompleted();
 
 	UPROPERTY(config)
 	TArray<FSoftObjectPath> NPCMeshes;
 	
-	TSharedPtr<FStreamableHandle> NPCMeshHandle;
-
 // AI Section
 protected:
 	virtual float GetAIPatrolRadius() override;

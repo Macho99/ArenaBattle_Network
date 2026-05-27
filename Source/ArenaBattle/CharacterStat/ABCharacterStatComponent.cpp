@@ -21,8 +21,7 @@ void UABCharacterStatComponent::InitializeComponent()
 	Super::InitializeComponent();
 
 	SetLevelStat(CurrentLevel);
-    MaxHp = BaseStat.MaxHp;
-	SetHp(MaxHp);
+	ResetStat();
 
     OnStatChanged.AddUObject(this, &UABCharacterStatComponent::SetNewMaxHp);
 }
@@ -106,5 +105,12 @@ void UABCharacterStatComponent::OnRep_ModifierStat()
 {
     AB_SUBLOG(LogABNetwork, Log, TEXT("%s"), TEXT("ModifierStat Replicated"));
     OnStatChanged.Broadcast(GetBaseStat(), GetModifierStat());
+}
+
+void UABCharacterStatComponent::ResetStat()
+{
+	SetLevelStat(CurrentLevel);
+    MaxHp = BaseStat.MaxHp;
+    SetHp(MaxHp);
 }
 
